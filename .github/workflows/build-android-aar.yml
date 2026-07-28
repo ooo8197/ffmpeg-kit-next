@@ -49,20 +49,34 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y autoconf automake libtool pkg-config curl mercurial cmake ninja-build gettext tar groff texinfo yasm nasm
 
-      # 6. 執行 scripts/android.sh 編譯腳本
+      # 6. 自動搜尋 android.sh 並執行編譯
       - name: Run Build Script
         run: |
           export ANDROID_HOME=$ANDROID_SDK_ROOT
           export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006
           
-          # 給予 scripts 資料夾內所有腳本執行權限
-          chmod +x scripts/*.sh
+          # 自動搜尋專案中真正的 android.sh 位置
+          SCRIPT_PATH=$(find . -maxdepth 3 -name "android.sh" | head -n 1)
           
-          # 執行 scripts/android.sh
+          if [ -z "$SCRIPT_PATH" ]; then
+            echo "❌ 找不到 android.sh 檔案，列出當前專案目錄結構："
+            ls -R
+            exit 1
+          fi
+          
+          echo "💡 成功找到編譯腳本位置：$SCRIPT_PATH"
+          SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+          
+          # 給予該目錄下所有 .sh 權限
+          chmod +x $SCRIPT_DIR/*.sh 2>/dev/null || true
+          
+          # 切換至腳本目錄執行
+          cd $SCRIPT_DIR
+          
           if [ "${{ inputs.target_arch }}" = "all" ]; then
-            ./scripts/android.sh
+            ./android.sh
           else
-            ./scripts/android.sh --target=${{ inputs.target_arch }}
+            ./android.sh --target=${{ inputs.target_arch }}
           fi
 
       # 7. 打包並上傳編譯好的 .aar 檔案
@@ -72,7 +86,4 @@ jobs:
         with:
           name: ffmpeg-kit-android-${{ inputs.target_arch }}
           path: |
-            android/app/build/outputs/aar/*.aar
-            android/build/output/*.aar
-            build/output/*.aar
             **/*.aar
