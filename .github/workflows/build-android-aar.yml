@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 檢出專案原始碼 (包含 Git Submodules)
+      # 1. 檢出專案原始碼 (包含 Submodules)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -49,26 +49,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y autoconf automake libtool pkg-config curl mercurial cmake ninja-build gettext tar groff texinfo yasm nasm
 
-      # 6. 切換至 android 資料夾並執行編譯腳本
+      # 6. 執行 scripts/android.sh 編譯腳本
       - name: Run Build Script
         run: |
           export ANDROID_HOME=$ANDROID_SDK_ROOT
           export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006
           
-          # 檢查 android.sh 檔案位置並切換目錄
-          if [ -d "android" ]; then
-            cd android
-          fi
+          # 給予 scripts 資料夾內所有腳本執行權限
+          chmod +x scripts/*.sh
           
-          # 確保所有 .sh 腳本有執行權限
-          chmod +x *.sh
-          chmod +x ../scripts/*.sh 2>/dev/null || true
-          
-          # 執行編譯
+          # 執行 scripts/android.sh
           if [ "${{ inputs.target_arch }}" = "all" ]; then
-            ./android.sh
+            ./scripts/android.sh
           else
-            ./android.sh --target=${{ inputs.target_arch }}
+            ./scripts/android.sh --target=${{ inputs.target_arch }}
           fi
 
       # 7. 打包並上傳編譯好的 .aar 檔案
